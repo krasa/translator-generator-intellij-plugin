@@ -1,5 +1,8 @@
 package krasa.translatorGenerator.generator;
 
+import static com.siyeh.ig.psiutils.CollectionUtils.isCollectionClassOrInterface;
+import static krasa.translatorGenerator.Utils.capitalize;
+
 import java.util.*;
 
 import krasa.translatorGenerator.Context;
@@ -18,12 +21,19 @@ import com.intellij.psi.util.PsiUtil;
 import com.intellij.psi.util.PsiUtilCore;
 import com.intellij.util.ArrayUtil;
 
+/**
+ * @author Vojtech Krasa
+ */
 public class MethodCodeGenerator {
+
 	private static final Logger LOG = Logger.getInstance("#" + MethodCodeGenerator.class.getName());
 
 	private PsiClass from;
 	private PsiClass to;
 	private Context context;
+
+	public MethodCodeGenerator() {
+	}
 
 	public MethodCodeGenerator(PsiClass from, PsiClass to, Context context) {
 		this.from = from;
@@ -68,15 +78,15 @@ public class MethodCodeGenerator {
 					PsiClass toImpl = toImpls[i];
 					if (i > 0 && toImpls.length > 2) {
 						s += "else if(TODO){\n";
-						s += "return translate" + Utils.capitalize(fromImpl.getName()) + "To" + toImpl.getName()
+						s += "return translate" + capitalize(fromImpl.getName()) + "To" + toImpl.getName()
 								+ "(input);}";
 					} else if (i > 0 && toImpls.length == 2) {
 						s += "else {\n";
-						s += "return translate" + Utils.capitalize(fromImpl.getName()) + "To" + toImpl.getName()
+						s += "return translate" + capitalize(fromImpl.getName()) + "To" + toImpl.getName()
 								+ "(input);}";
 					} else {
 						s += "if {\n";
-						s += "return translate" + Utils.capitalize(fromImpl.getName()) + "To" + toImpl.getName()
+						s += "return translate" + capitalize(fromImpl.getName()) + "To" + toImpl.getName()
 								+ "(input);}";
 					}
 					context.scheduleTranslator(fromImpl, toImpl);
@@ -187,12 +197,12 @@ public class MethodCodeGenerator {
 		PsiField[] toFields = to.getAllFields();
 		PsiField[] fromFields = from.getAllFields();
 		s += to.getQualifiedName() + " " + "result = new " + to.getQualifiedName() + "();";
-		s = generateCallsForFields(s, fromFields, toFields, inputVariable);
+		s = generateCall(s, fromFields, toFields, inputVariable);
 		s += "return result;";
 		return s;
 	}
 
-	private String generateCallsForFields(String s, PsiField[] fromFields, PsiField[] toFields, String inputVariable) {
+	private String generateCall(String s, PsiField[] fromFields, PsiField[] toFields, String inputVariable) {
 		int lastTodo = -1;
 		Map<String, PsiField> fromFieldsMap = getStringPsiFieldMap(fromFields);
 
@@ -202,23 +212,26 @@ public class MethodCodeGenerator {
 				continue;
 			}
 			PsiMethod setter = Utils.setter(toField);
-			PsiMethod getter = Utils.getter(toField);
+			PsiMethod toGetter = Utils.getter(toField);
 
-			if (setter == null && getter != null) {
-				s = handleJaxbCollection(s, toField, getter, inputVariable);
+			if (setter == null && toGetter != null) {
+				if (isCollectionClassOrInterface(toGetter.getReturnType())) {
+					s = handleJaxbCollection(s, toField, toGetter, inputVariable, fromFieldsMap);
+				} else {
+					s += " //TODO " + toField.getName() + "\n";
+				}
 			} else if (setter != null) {
 				PsiField fromField = fromFieldsMap.get(toField.getName());
 				if (fromField == null) {
 					s += "\n//result." + setter.getName() + "(" + inputVariable + ".get"
-							+ Utils.capitalize(toField.getName()) + "());\n";
+							+ capitalize(toField.getName()) + "());\n";
 				} else {
 					PsiMethod fromGetter = Utils.getter(fromField);
 					if (fromGetter != null) {
-						s += "result." + setter.getName() + "(" + translatableGetter(fromGetter, setter, inputVariable)
-								+ ");";
+						s += "result." + setter.getName() + "(" + getter(fromGetter, setter, inputVariable) + ");";
 					} else {
 						s += "\n//result." + setter.getName() + "(" + inputVariable + ".get"
-								+ Utils.capitalize(toField.getName()) + "());\n";
+								+ capitalize(toField.getName()) + "());\n";
 					}
 				}
 			} else {
@@ -232,7 +245,7 @@ public class MethodCodeGenerator {
 		return s.replace("\n\n", "\n");
 	}
 
-	private Map<String, PsiField> getStringPsiFieldMap(PsiField[] fromFields) {
+	protected Map<String, PsiField> getStringPsiFieldMap(PsiField[] fromFields) {
 		Map<String, PsiField> fromFieldsMap = new HashMap<String, PsiField>();
 		for (PsiField fromField : fromFields) {
 			fromFieldsMap.put(fromField.getName(), fromField);
@@ -242,6 +255,7 @@ public class MethodCodeGenerator {
 
 	protected static ImplementationSearcher createImplementationsSearcher() {
 		return new ImplementationSearcher() {
+
 			@Override
 			protected PsiElement[] filterElements(PsiElement element, PsiElement[] targetElements, int offset) {
 				return MethodCodeGenerator.filterElements(targetElements);
@@ -253,6 +267,7 @@ public class MethodCodeGenerator {
 		final Set<PsiElement> unique = new LinkedHashSet<PsiElement>(Arrays.asList(targetElements));
 		for (final PsiElement elt : targetElements) {
 			ApplicationManager.getApplication().runReadAction(new Runnable() {
+
 				@Override
 				public void run() {
 					final PsiFile containingFile = elt.getContainingFile();
@@ -269,6 +284,7 @@ public class MethodCodeGenerator {
 		for (int i = 1; i < targetElements.length; i++) {
 			final PsiElement targetElement = targetElements[i];
 			if (ApplicationManager.getApplication().runReadAction(new Computable<Boolean>() {
+
 				@Override
 				public Boolean compute() {
 					return PsiTreeUtil.isAncestor(targetElement, targetElements[0], true);
@@ -281,36 +297,47 @@ public class MethodCodeGenerator {
 		return PsiUtilCore.toPsiElementArray(unique);
 	}
 
-	private String handleJaxbCollection(String s, PsiField field, PsiMethod getter, String inputVariable) {
-		if (getter.getReturnType() instanceof PsiClassReferenceType) {
-			PsiClassReferenceType returnType = (PsiClassReferenceType) getter.getReturnType();
-			String type = returnType.getCanonicalText();
-			String capitalizedFieldName = Utils.capitalize(field.getName());
+	protected String handleJaxbCollection(String s, PsiField toField, PsiMethod toGetter, String methodInputVariable,
+			Map<String, PsiField> fromFieldsMap) {
+		if (toGetter.getReturnType() instanceof PsiClassReferenceType) {
+			PsiClassReferenceType toGetterType = (PsiClassReferenceType) toGetter.getReturnType();
+			String toType = toGetterType.getCanonicalText();
+			PsiType[] toGetterTypeParameters = toGetterType.getReference().getTypeParameters();
 
-			s += type + " input" + capitalizedFieldName + " =  " + inputVariable + "." + getter.getName() + "();";
-			s += type + " result" + capitalizedFieldName + " =  result." + getter.getName() + "();";
-			PsiType[] typeParameters = returnType.getReference().getTypeParameters();
+			PsiField fromField = fromFieldsMap.get(toField.getNameIdentifier().getText());
+			PsiMethod fromGetter = Utils.getter(fromField);
+			PsiClassReferenceType fromGetterType = (PsiClassReferenceType) fromGetter.getReturnType();
+			String fromType = fromGetterType.getCanonicalText();
+			PsiType[] fromGetterTypeParameters = fromGetterType.getReference().getTypeParameters();
+
+			String inputVariable = "input" + capitalize(fromField.getName());
+			s += fromType + " " + inputVariable + " =  " + methodInputVariable + "." + fromGetter.getName() + "();";
+			String resultVariable = "result" + capitalize(toField.getName());
+			s += toType + " " + resultVariable + " =  result." + toGetter.getName() + "();";
+
 			String objectType = "Object";
 			String itemGetter = "item";
-			if (typeParameters.length > 0) {
-				PsiType typeParameter = typeParameters[0];
-				objectType = typeParameter.getCanonicalText();
-				if (context.shouldTranslate(typeParameter)) {
-					context.scheduleTranslator(typeParameter, typeParameter);
-					itemGetter = "translate" + typeParameter.getPresentableText() + "(item)";
+			if (toGetterTypeParameters.length > 0 && fromGetterTypeParameters.length > 0) {
+				PsiType toGetterTypeParameter = toGetterTypeParameters[0];
+				// objectType = getterTypeParameter.getCanonicalText();
+				PsiType fromGetterTypeParameter = fromGetterTypeParameters[0];
+				objectType = fromGetterTypeParameter.getCanonicalText();
+				if (context.shouldTranslate(toGetterTypeParameter, fromGetterTypeParameter)) {
+					context.scheduleTranslator(fromGetterTypeParameter, toGetterTypeParameter);
+					itemGetter = "translate" + fromGetterTypeParameter.getPresentableText() + "(item)";
 				}
 				// todo handle Map
 			}
-			s += "for(" + objectType + " item : input" + capitalizedFieldName + "){";
-			s += "	result" + capitalizedFieldName + ".add(" + itemGetter + ");";
+			s += "for(" + objectType + " item : " + inputVariable + "){";
+			s += resultVariable + ".add(" + itemGetter + ");";
 			s += "}";
 		} else {
-			s += "\n//todo " + getter.getReturnType() + "\n";
+			s += "\n//todo " + toGetter.getReturnType() + "\n";
 		}
 		return s;
 	}
 
-	private String translatableGetter(PsiMethod getter, PsiMethod setter, String inputVariable) {
+	protected String getter(PsiMethod getter, PsiMethod setter, String inputVariable) {
 		// todo
 		PsiType getterType = getter.getReturnType();
 		PsiParameter psiParameter = setter.getParameterList().getParameters()[0];
@@ -320,9 +347,10 @@ public class MethodCodeGenerator {
 			return inputVariable + "." + getter.getName() + "()";
 		} else {
 			if (getterType instanceof PsiClassReferenceType) {
-				PsiClassReferenceType psiTypeElement = (PsiClassReferenceType) getterType;
-				if (context.shouldTranslate(psiTypeElement)) {
-					String className = psiTypeElement.getClassName();
+				PsiClassReferenceType getterRefType = (PsiClassReferenceType) getterType;
+				PsiClassReferenceType setterRefType = (PsiClassReferenceType) setterType;
+				if (context.shouldTranslate(getterRefType, setterRefType)) {
+					String className = getterRefType.getClassName();
 					context.scheduleTranslator(getterType, setterType);
 					return "translate" + className + "(" + inputVariable + "." + getter.getName() + "())";
 				} else {
@@ -330,7 +358,8 @@ public class MethodCodeGenerator {
 				}
 			} else if (getterType instanceof PsiArrayType) {
 				PsiArrayType psiArrayType = (PsiArrayType) getterType;
-				if (context.shouldTranslate(psiArrayType.getComponentType())) {
+				PsiArrayType setterRefType = (PsiArrayType) setterType;// todo check
+				if (context.shouldTranslate(psiArrayType.getComponentType(), setterRefType.getComponentType())) {
 					String className = psiArrayType.getComponentType().getCanonicalText() + "Array";
 					// todo array translator
 					context.scheduleTranslator(getterType, setterType);

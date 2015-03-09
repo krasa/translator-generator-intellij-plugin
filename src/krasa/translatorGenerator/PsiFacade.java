@@ -11,12 +11,19 @@ import com.intellij.psi.codeStyle.CodeStyleManager;
 import com.intellij.psi.codeStyle.JavaCodeStyleManager;
 import com.intellij.psi.util.PsiTreeUtil;
 
+/**
+ * @author Vojtech Krasa
+ */
 public class PsiFacade {
 
 	private Project project;
 
 	public PsiFacade(Project project) {
 		this.project = project;
+	}
+
+	public Project getProject() {
+		return project;
 	}
 
 	public PsiClass getPsiClassFromEvent(AnActionEvent e) {
@@ -39,14 +46,6 @@ public class PsiFacade {
 		int offset = editor.getCaretModel().getOffset();
 		PsiElement element = file.findElementAt(offset);
 		return element;
-	}
-
-	public PsiClass createClassFromText(String classText) {
-		return JavaPsiFacade.getElementFactory(project).createClassFromText(classText, null).getInnerClasses()[0];
-	}
-
-	public PsiMethod createMethodFromText(String methodText, PsiClass targetClass) {
-		return JavaPsiFacade.getElementFactory(project).createMethodFromText(methodText, targetClass);
 	}
 
 	public PsiField createFieldFromText(String fieldText, PsiClass targetClass) {

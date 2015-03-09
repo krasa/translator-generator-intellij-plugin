@@ -5,6 +5,9 @@ import krasa.translatorGenerator.PsiFacade;
 
 import com.intellij.psi.PsiClass;
 
+/**
+ * @author Vojtech Krasa
+ */
 public class TranslatorClassAssembler extends Assembler {
 
 	private PsiClass sourceClass;
@@ -22,7 +25,7 @@ public class TranslatorClassAssembler extends Assembler {
 	}
 
 	private PsiClass assembleTranslatorClass() {
-		PsiClass builderClass = builderFactory.createTranslatorClass(sourceClass, sourceClass);
+		PsiClass builderClass = psiBuilder.createTranslatorClass(sourceClass, sourceClass);
 		generateTranslatorMethods(builderClass, sourceClass, sourceClass);
 		return builderClass;
 	}

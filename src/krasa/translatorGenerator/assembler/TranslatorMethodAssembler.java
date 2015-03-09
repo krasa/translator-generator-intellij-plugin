@@ -3,6 +3,7 @@ package krasa.translatorGenerator.assembler;
 import krasa.translatorGenerator.Context;
 import krasa.translatorGenerator.PsiFacade;
 
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.util.PsiUtil;
@@ -11,6 +12,9 @@ import com.intellij.psi.util.PsiUtil;
  * @author Vojtech Krasa
  */
 public class TranslatorMethodAssembler extends Assembler {
+
+	private static final Logger LOG = Logger.getInstance(TranslatorMethodAssembler.class.getName());
+
 	private PsiMethod psiMethod;
 
 	public TranslatorMethodAssembler(PsiMethod psiMethod, PsiFacade psiFacade, Context context) {
@@ -26,12 +30,17 @@ public class TranslatorMethodAssembler extends Assembler {
 		PsiType fromType = parameters[0].getType();
 		PsiClass from = getPsiClass(fromType);
 
-		PsiMethod translatorMethod = builderFactory.createTranslatorMethod(topLevelClass, to, from);
+		PsiMethod translatorMethod = psiBuilder.createTranslatorMethod(topLevelClass, from, to);
 		context.processedTranslator(fromType, toType);
-		generateScheduledTranslators(topLevelClass);
-		psiMethod.replace(translatorMethod);
-		psiFacade.shortenClassReferences(translatorMethod);
-		psiFacade.reformat(translatorMethod);
+		try {
+			psiMethod.replace(translatorMethod);
+			psiFacade.shortenClassReferences(translatorMethod);
+			psiFacade.reformat(translatorMethod);
+			generateScheduledTranslators(topLevelClass);
+		} catch (Throwable e) {
+			throw new RuntimeException("topLevelClass=" + topLevelClass + ", from=" + from + ", to=" + to
+					+ ", translatorMethod=" + translatorMethod.getName(), e);
+		}
 	}
 
 	private PsiClass getPsiClass(PsiType type) {

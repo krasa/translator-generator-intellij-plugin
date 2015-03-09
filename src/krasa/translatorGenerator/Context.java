@@ -4,38 +4,59 @@ import java.util.Set;
 
 import krasa.translatorGenerator.assembler.TranslatorDto;
 
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiType;
 import com.intellij.refactoring.typeCook.Util;
 import com.intellij.util.containers.ConcurrentHashSet;
 
+/**
+ * @author Vojtech Krasa
+ */
 public class Context {
+
+	private static final Logger LOG = Logger.getInstance(Context.class.getName());
+
 	public Set<TranslatorDto> scheduled = new ConcurrentHashSet<TranslatorDto>();
 	public boolean replaceMethods = true;
+	private Project project;
 	private Editor editor;
 
-	public Context(Editor editor) {
+	public Context(Project project, Editor editor) {
+		this.project = project;
 		this.editor = editor;
 	}
 
-	public boolean shouldTranslate(String canonicalText) {
-		return canonicalText.startsWith("com.t_motion") || canonicalText.startsWith("krasa");
+	public Project getProject() {
+		return project;
 	}
 
-	public boolean shouldTranslate(PsiType typeParameter) {
-		return shouldTranslate(typeParameter.getCanonicalText());
+	public boolean shouldTranslate(PsiType getter, PsiType setter) {
+		if (HACK.isTranslationExcluded(getter)) {
+			return false;
+		}
+		if (!getter.getCanonicalText().equals(setter.getCanonicalText())) {
+			return true;
+		}
+		return HACK.shouldTranslate(getter.getCanonicalText());
 	}
 
 	public void scheduleTranslator(PsiType from, PsiType to) {
-		TranslatorDto translatorDto = new TranslatorDto(from, to);
-		scheduled.add(translatorDto);
+		add(new TranslatorDto(from, to));
+	}
+
+	private void add(TranslatorDto translatorDto) {
+		if (!scheduled.contains(translatorDto)) {
+			LOG.info("scheduling " + translatorDto);
+			scheduled.add(translatorDto);
+		}
 	}
 
 	public void scheduleTranslator(PsiClass fromImpl, PsiClass toImpl) {
 		TranslatorDto translatorDto = new TranslatorDto(Util.getType(fromImpl), Util.getType(toImpl));
-		scheduled.add(translatorDto);
-
+		add(translatorDto);
 	}
 
 	public boolean hasAnyScheduled() {

@@ -1,18 +1,18 @@
 <idea-plugin version="2">
-    <id>krasa.translatorGenerator</id>
-    <name>Translator Generator</name>
-    <version>0.1 alpha</version>
+	<id>krasa.translatorGenerator</id>
+	<name>Translator Generator</name>
+	<version>0.2</version>
 
-    <vendor url="https://github.com/krasa/TranslatorGenerator" email="vojta.krasa@gmail.com">Vojtech
-        Krasa
-    </vendor>
+	<vendor url="https://github.com/krasa/TranslatorGenerator" email="vojta.krasa@gmail.com">Vojtech
+		Krasa
+	</vendor>
 
 
-    <description><![CDATA[
+	<description><![CDATA[
 TranslatorGenerator is a plugin for IntelliJ IDEA that automates creation of translators methods/classes for POJOs.
   ]]></description>
 
-    <change-notes><![CDATA[
+	<change-notes><![CDATA[
 <p>
 0.1
 <ul>
@@ -21,33 +21,41 @@ TranslatorGenerator is a plugin for IntelliJ IDEA that automates creation of tra
 </p>
   ]]></change-notes>
 
-    <!-- please see http://confluence.jetbrains.com/display/IDEADEV/Build+Number+Ranges for description -->
-    <idea-version since-build="139"/>
+	<!-- please see http://confluence.jetbrains.com/display/IDEADEV/Build+Number+Ranges for description -->
+	<idea-version since-build="135.000" />
 
-    <!-- please see http://confluence.jetbrains.com/display/IDEADEV/Plugin+Compatibility+with+IntelliJ+Platform+Products
-         on how to target different products -->
-    <!-- uncomment to enable plugin in all products
-    <depends>com.intellij.modules.lang</depends>
-    -->
+	<!-- please see http://confluence.jetbrains.com/display/IDEADEV/Plugin+Compatibility+with+IntelliJ+Platform+Products
+		 on how to target different products -->
+	<!-- uncomment to enable plugin in all products
+	<depends>com.intellij.modules.lang</depends>
+	-->
 
-    <extensions defaultExtensionNs="com.intellij">
-        <!-- Add your extensions here -->
-    </extensions>
+	<extensions defaultExtensionNs="com.intellij">
+		<!-- Add your extensions here -->
+	</extensions>
 
-    <application-components>
-        <!-- Add your application components here -->
-    </application-components>
+	<application-components>
+		<!-- Add your application components here -->
+	</application-components>
 
-    <project-components>
-        <!-- Add your project components here -->
-    </project-components>
+	<project-components>
+		<!-- Add your project components here -->
+	</project-components>
 
-    <actions>
-        <!-- Add your actions here -->
-        <action id="krasa.translatorGenerator.action.TranslatorAction"
-                class="krasa.translatorGenerator.action.TranslatorAction" text="Translate Class">
-            <add-to-group group-id="GenerateGroup" anchor="last"/>
-        </action>
-    </actions>
+	<actions>
+		<!-- Add your actions here -->
+		<action id="krasa.translatorGenerator.action.GenerateTranslatorClassAction"
+			class="krasa.translatorGenerator.action.GenerateTranslatorClassAction" text="Generate translator class">
+			<add-to-group group-id="GenerateGroup" anchor="last" />
+		</action>
+		<action id="krasa.translatorGenerator.action.GenerateTranslatorMethodAction"
+			class="krasa.translatorGenerator.action.GenerateTranslatorMethodAction" text="Generate translator method">
+			<add-to-group group-id="GenerateGroup" anchor="last" />
+		</action>
+		<action id="krasa.translatorGenerator.action.GenerateSetterCalls"
+			class="krasa.translatorGenerator.action.GenerateSetterCalls" text="Generate Setter Calls">
+			<add-to-group group-id="GenerateGroup" anchor="last" />
+		</action>
+	</actions>
 
 </idea-plugin>

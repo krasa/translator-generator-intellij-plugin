@@ -1,30 +1,32 @@
 package krasa.translatorGenerator.assembler;
 
-import krasa.translatorGenerator.BuilderFactory;
 import krasa.translatorGenerator.Context;
+import krasa.translatorGenerator.PsiBuilder;
 import krasa.translatorGenerator.PsiFacade;
 
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
+import com.intellij.psi.util.PsiTreeUtil;
 
 /**
  * @author Vojtech Krasa
  */
 public abstract class Assembler {
+
 	protected PsiFacade psiFacade;
-	protected BuilderFactory builderFactory;
+	protected PsiBuilder psiBuilder;
 	protected Context context;
 
 	public Assembler(PsiFacade psiFacade, Context context) {
-		this.builderFactory = new BuilderFactory(psiFacade, context);
+		this.psiBuilder = new PsiBuilder(context, psiFacade.getProject());
 		this.context = context;
 		this.psiFacade = psiFacade;
 	}
 
 	protected void generateTranslatorMethods(PsiClass builderClass, PsiClass from, final PsiClass to) {
-		PsiMethod translatorMethod = builderFactory.createTranslatorMethod(builderClass, from, to);
+		PsiMethod translatorMethod = psiBuilder.createTranslatorMethod(builderClass, from, to);
 		addToClass(builderClass, translatorMethod);
 		generateScheduledTranslators(builderClass);
 	}
@@ -37,8 +39,7 @@ public abstract class Assembler {
 			translatorDto.processed = true;
 			PsiClassReferenceType from = (PsiClassReferenceType) translatorDto.getFrom();
 			PsiClassReferenceType to = (PsiClassReferenceType) translatorDto.getTo();
-			PsiMethod translatorMethod = builderFactory.createTranslatorMethod(builderClass, from.resolve(),
-					to.resolve());
+			PsiMethod translatorMethod = psiBuilder.createTranslatorMethod(builderClass, from.resolve(), to.resolve());
 			addToClass(builderClass, translatorMethod);
 		}
 		if (context.hasAnyScheduled()) {
@@ -48,15 +49,21 @@ public abstract class Assembler {
 
 	protected void addToClass(PsiClass builderClass, PsiMethod methodToAdd) {
 		PsiElement added;
+		PsiMethod[] childrenOfType = PsiTreeUtil.getChildrenOfType(builderClass, PsiMethod.class);
+		PsiMethod last = null;
+		if (childrenOfType != null) {
+			last = childrenOfType[childrenOfType.length - 1];
+		}
 		if (context.replaceMethods) {
 			PsiMethod[] methodsBySignature = builderClass.findMethodsBySignature(methodToAdd, false);
 			if (methodsBySignature.length == 1) {
-				added = methodsBySignature[0].replace(methodToAdd);
+				added = builderClass.addAfter(methodToAdd, methodsBySignature[0]);
+				methodsBySignature[0].delete();
 			} else {
-				added = builderClass.add(methodToAdd);
+				added = builderClass.addAfter(methodToAdd, last);
 			}
 		} else {
-			added = builderClass.add(methodToAdd);
+			added = builderClass.addAfter(methodToAdd, last);
 		}
 		psiFacade.shortenClassReferences(added);
 		psiFacade.reformat(added);

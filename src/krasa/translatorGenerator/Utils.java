@@ -9,7 +9,11 @@ import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.util.PropertyUtil;
 
+/**
+ * @author Vojtech Krasa
+ */
 public class Utils {
+
 	private static String camelCase(String s) {
 		return toLowerCase(s.charAt(0)) + s.substring(1);
 	}
