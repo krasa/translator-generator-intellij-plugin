@@ -1,5 +1,5 @@
 # translator-generator-intellij-plugin
-in progress
+In progress...
 
 
 generating setter calls: 
