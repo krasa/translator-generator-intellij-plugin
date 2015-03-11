@@ -3,10 +3,9 @@ package krasa.translatorGenerator;
 import krasa.translatorGenerator.generator.MethodCodeGenerator;
 
 import com.intellij.openapi.project.Project;
-import com.intellij.psi.JavaPsiFacade;
-import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiElementFactory;
-import com.intellij.psi.PsiMethod;
+import com.intellij.psi.*;
+import com.intellij.psi.impl.source.PsiClassReferenceType;
+import com.intellij.psi.util.PsiUtil;
 
 /**
  * @author Vojtech Krasa
@@ -21,14 +20,21 @@ public class PsiBuilder {
 		elementFactory = JavaPsiFacade.getElementFactory(project);
 	}
 
-	public PsiClass createTranslatorClass(PsiClass from, final PsiClass to) {
+	public PsiClass createTranslatorClass(PsiClass from, PsiClass to) {
 		return elementFactory.createClassFromText(
 				"public static class " + from.getName() + "To" + to.getName() + "Translator {}", null).getInnerClasses()[0];
 	}
 
 	public PsiMethod createTranslatorMethod(PsiClass builderClass, PsiClass from, PsiClass to) {
-		return elementFactory.createMethodFromText(new MethodCodeGenerator(from, to, context).translatorMethod(),
-				builderClass);
+		PsiMethod methodFromText = elementFactory.createMethodFromText(
+				new MethodCodeGenerator(from, to, context).translatorMethod(), builderClass);
+		context.markTranslatorMethodProcessed(PsiUtil.getTypeByPsiElement(from), PsiUtil.getTypeByPsiElement(to));
+		return methodFromText;
 	}
 
+	public PsiMethod createTranslatorMethod(PsiClass builderClass, PsiType fromType, PsiType toType) {
+		PsiClassReferenceType from = (PsiClassReferenceType) fromType;
+		PsiClassReferenceType to = (PsiClassReferenceType) toType;
+		return createTranslatorMethod(builderClass, from.resolve(), to.resolve());
+	}
 }

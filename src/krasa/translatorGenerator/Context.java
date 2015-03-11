@@ -68,7 +68,7 @@ public class Context {
 		return false;
 	}
 
-	public void processedTranslator(PsiType from, PsiType to) {
+	public void markTranslatorMethodProcessed(PsiType from, PsiType to) {
 		TranslatorDto e = new TranslatorDto(from, to);
 		e.processed = true;
 		scheduled.add(e);

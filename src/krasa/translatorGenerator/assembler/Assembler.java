@@ -4,46 +4,46 @@ import krasa.translatorGenerator.Context;
 import krasa.translatorGenerator.PsiBuilder;
 import krasa.translatorGenerator.PsiFacade;
 
+import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiMethod;
-import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.util.PsiTreeUtil;
 
 /**
  * @author Vojtech Krasa
  */
 public abstract class Assembler {
+	private static final Logger LOG = Logger.getInstance(TranslatorMethodAssembler.class.getName());
 
 	protected PsiFacade psiFacade;
 	protected PsiBuilder psiBuilder;
 	protected Context context;
+	protected Editor editor;
+	protected Project project;
 
 	public Assembler(PsiFacade psiFacade, Context context) {
 		this.psiBuilder = new PsiBuilder(context, psiFacade.getProject());
 		this.context = context;
+		editor = context.getEditor();
+		project = context.getProject();
 		this.psiFacade = psiFacade;
 	}
 
-	protected void generateTranslatorMethods(PsiClass builderClass, PsiClass from, final PsiClass to) {
-		PsiMethod translatorMethod = psiBuilder.createTranslatorMethod(builderClass, from, to);
-		addToClass(builderClass, translatorMethod);
-		generateScheduledTranslators(builderClass);
-	}
-
-	protected void generateScheduledTranslators(PsiClass builderClass) {
+	protected void generateScheduledTranslatorMethods(PsiClass builderClass) {
 		for (TranslatorDto translatorDto : context.scheduled) {
 			if (translatorDto.processed) {
 				continue;
 			}
 			translatorDto.processed = true;
-			PsiClassReferenceType from = (PsiClassReferenceType) translatorDto.getFrom();
-			PsiClassReferenceType to = (PsiClassReferenceType) translatorDto.getTo();
-			PsiMethod translatorMethod = psiBuilder.createTranslatorMethod(builderClass, from.resolve(), to.resolve());
+			PsiMethod translatorMethod = psiBuilder.createTranslatorMethod(builderClass, translatorDto.getFrom(),
+					translatorDto.getTo());
 			addToClass(builderClass, translatorMethod);
 		}
 		if (context.hasAnyScheduled()) {
-			generateScheduledTranslators(builderClass);
+			generateScheduledTranslatorMethods(builderClass);
 		}
 	}
 
@@ -68,4 +68,5 @@ public abstract class Assembler {
 		psiFacade.shortenClassReferences(added);
 		psiFacade.reformat(added);
 	}
+
 }

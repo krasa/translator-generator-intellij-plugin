@@ -25,21 +25,23 @@ public class TranslatorMethodAssembler extends Assembler {
 	public void assemble() {
 		PsiClass topLevelClass = PsiUtil.getTopLevelClass(psiMethod);
 		PsiParameter[] parameters = psiMethod.getParameterList().getParameters();
-		PsiType toType = psiMethod.getReturnType();
-		PsiClass to = getPsiClass(toType);
 		PsiType fromType = parameters[0].getType();
-		PsiClass from = getPsiClass(fromType);
+		PsiType toType = psiMethod.getReturnType();
 
-		PsiMethod translatorMethod = psiBuilder.createTranslatorMethod(topLevelClass, from, to);
-		context.processedTranslator(fromType, toType);
+		PsiMethod translatorMethod = psiBuilder.createTranslatorMethod(topLevelClass, fromType, toType);
+		replaceMethod(translatorMethod);
+
+		generateScheduledTranslatorMethods(topLevelClass);
+	}
+
+	private void replaceMethod(PsiMethod translatorMethod) {
 		try {
 			psiMethod.replace(translatorMethod);
 			psiFacade.shortenClassReferences(translatorMethod);
 			psiFacade.reformat(translatorMethod);
-			generateScheduledTranslators(topLevelClass);
 		} catch (Throwable e) {
-			throw new RuntimeException("topLevelClass=" + topLevelClass + ", from=" + from + ", to=" + to
-					+ ", translatorMethod=" + translatorMethod.getName(), e);
+			throw new RuntimeException("translatorMethod=" + translatorMethod.getName() + ", text="
+					+ translatorMethod.getText(), e);
 		}
 	}
 
