@@ -1,11 +1,12 @@
 # translator-generator-intellij-plugin
-In progress...
+Work in progress, contributors welcomed.
 
+##Features:
 
-generating setter calls: 
+Generating setter calls: 
 
 ![]( http://i.imgur.com/mDnEmPj.gif) 
 
-generating translators:
+Generating translators:
 
 ![](http://i.imgur.com/DOMa9FN.gif)
