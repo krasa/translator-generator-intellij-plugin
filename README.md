@@ -1,6 +1,8 @@
 # translator-generator-intellij-plugin
 Work in progress, contributors welcomed.
 
+https://github.com/krasa/translator-generator-intellij-plugin-test
+
 ##Features:
 
 Generating setter calls: 
