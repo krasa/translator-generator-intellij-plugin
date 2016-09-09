@@ -12,3 +12,4 @@ Generating setter calls:
 Generating translators:
 
 ![](http://i.imgur.com/DOMa9FN.gif)
+https://github.com/krasa/translator-generator-intellij-plugin-test/blob/master/src/main/java/Translator.java
