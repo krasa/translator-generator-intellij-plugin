@@ -5,9 +5,6 @@ import static krasa.translatorGenerator.Utils.capitalize;
 
 import java.util.*;
 
-import krasa.translatorGenerator.Context;
-import krasa.translatorGenerator.Utils;
-
 import org.jetbrains.annotations.NotNull;
 
 import com.intellij.codeInsight.navigation.ImplementationSearcher;
@@ -20,6 +17,9 @@ import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.util.PsiUtil;
 import com.intellij.psi.util.PsiUtilCore;
 import com.intellij.util.ArrayUtil;
+
+import krasa.translatorGenerator.Context;
+import krasa.translatorGenerator.Utils;
 
 /**
  * @author Vojtech Krasa
@@ -105,6 +105,32 @@ public class MethodCodeGenerator {
 		}
 
 		s += "}";
+		return s;
+	}
+
+	public String arrayTranslatorMethod() {
+		String fromClassName = from.getName();
+		String fromQualifiedName = from.getQualifiedName();
+		String toQualifiedName = to.getQualifiedName();
+
+		String s = "public " + toQualifiedName + "[] " + "translate" + fromClassName + "Array(" + fromQualifiedName
+				+ "[] input) { ";
+
+		s += to.getQualifiedName() + "[] " + "result = new " + to.getQualifiedName() + "[input.length];";
+		s += "for (int i = 0; i < input.length; i++) {";
+
+		PsiClassType fromTypeParameter = JavaPsiFacade.getInstance(from.getProject()).getElementFactory().createType(from);
+		PsiClassType toTypeParameter = JavaPsiFacade.getInstance(to.getProject()).getElementFactory().createType(to);
+		if (context.shouldTranslate(toTypeParameter, fromTypeParameter)) {
+			context.scheduleTranslator(fromTypeParameter, toTypeParameter);
+			s += "result[i] = translate" + fromTypeParameter.getPresentableText() + "(input[i]);";
+		} else {
+			s += "result[i] = input[i];";
+		}
+
+		s += "}";
+
+		s += "return result;}";
 		return s;
 	}
 
@@ -216,15 +242,15 @@ public class MethodCodeGenerator {
 
 			if (setter == null && toGetter != null) {
 				if (isCollectionClassOrInterface(toGetter.getReturnType())) {
-					s = handleJaxbCollection(s, toField, toGetter, inputVariable, fromFieldsMap);
+					s = handleCollection(s, toField, toGetter, inputVariable, fromFieldsMap);
 				} else {
 					s += " //TODO " + toField.getName() + "\n";
 				}
 			} else if (setter != null) {
 				PsiField fromField = fromFieldsMap.get(toField.getName());
 				if (fromField == null) {
-					s += "\n//result." + setter.getName() + "(" + inputVariable + ".get"
-							+ capitalize(toField.getName()) + "());\n";
+					s += "\n//result." + setter.getName() + "(" + inputVariable + ".get" + capitalize(toField.getName())
+							+ "());\n";
 				} else {
 					PsiMethod fromGetter = Utils.getter(fromField);
 					if (fromGetter != null) {
@@ -280,7 +306,8 @@ public class MethodCodeGenerator {
 			});
 		}
 		// special case for Python (PY-237)
-		// if the definition is the tree parent of the target element, filter out the target element
+		// if the definition is the tree parent of the target element, filter
+		// out the target element
 		for (int i = 1; i < targetElements.length; i++) {
 			final PsiElement targetElement = targetElements[i];
 			if (ApplicationManager.getApplication().runReadAction(new Computable<Boolean>() {
@@ -297,7 +324,7 @@ public class MethodCodeGenerator {
 		return PsiUtilCore.toPsiElementArray(unique);
 	}
 
-	protected String handleJaxbCollection(String s, PsiField toField, PsiMethod toGetter, String methodInputVariable,
+	protected String handleCollection(String s, PsiField toField, PsiMethod toGetter, String methodInputVariable,
 			Map<String, PsiField> fromFieldsMap) {
 		if (toGetter.getReturnType() instanceof PsiClassReferenceType) {
 			PsiClassReferenceType toGetterType = (PsiClassReferenceType) toGetter.getReturnType();
@@ -317,19 +344,39 @@ public class MethodCodeGenerator {
 
 			String objectType = "Object";
 			String itemGetter = "item";
-			if (toGetterTypeParameters.length > 0 && fromGetterTypeParameters.length > 0) {
+			if (toGetterTypeParameters.length == 1 && fromGetterTypeParameters.length == 1) { // List/Set
 				PsiType toGetterTypeParameter = toGetterTypeParameters[0];
-				// objectType = getterTypeParameter.getCanonicalText();
 				PsiType fromGetterTypeParameter = fromGetterTypeParameters[0];
 				objectType = fromGetterTypeParameter.getCanonicalText();
 				if (context.shouldTranslate(toGetterTypeParameter, fromGetterTypeParameter)) {
 					context.scheduleTranslator(fromGetterTypeParameter, toGetterTypeParameter);
 					itemGetter = "translate" + fromGetterTypeParameter.getPresentableText() + "(item)";
 				}
-				// todo handle Map
+			} else if (toGetterTypeParameters.length == 2 && fromGetterTypeParameters.length == 2) { // Map
+				inputVariable += ".entrySet()";
+				PsiType toGetterTypeParameter = toGetterTypeParameters[0];
+				PsiType fromGetterTypeParameter = fromGetterTypeParameters[0];
+				objectType = "java.util.Map.Entry<" + fromGetterTypeParameters[0].getCanonicalText() + ","
+						+ fromGetterTypeParameters[1].getCanonicalText() + ">";
+
+				String key = "item.getKey()";
+				String value = "item.getValue()";
+				if (context.shouldTranslate(toGetterTypeParameters[0], fromGetterTypeParameters[0])) {
+					context.scheduleTranslator(fromGetterTypeParameter, toGetterTypeParameter);
+					key = "translate" + fromGetterTypeParameter.getPresentableText() + "(item.getKey())";
+				}
+				if (context.shouldTranslate(toGetterTypeParameters[1], fromGetterTypeParameters[1])) {
+					context.scheduleTranslator(fromGetterTypeParameter, toGetterTypeParameter);
+					value = "translate" + fromGetterTypeParameter.getPresentableText() + "(item.getValue())";
+				}
+				itemGetter = key + ", " + value;
 			}
 			s += "for(" + objectType + " item : " + inputVariable + "){";
-			s += resultVariable + ".add(" + itemGetter + ");";
+			if (toGetterTypeParameters.length == 2) {
+				s += resultVariable + ".put(" + itemGetter + ");";
+			} else {
+				s += resultVariable + ".add(" + itemGetter + ");";
+			}
 			s += "}";
 		} else {
 			s += "\n//todo " + toGetter.getReturnType() + "\n";
@@ -358,10 +405,10 @@ public class MethodCodeGenerator {
 				}
 			} else if (getterType instanceof PsiArrayType) {
 				PsiArrayType psiArrayType = (PsiArrayType) getterType;
-				PsiArrayType setterRefType = (PsiArrayType) setterType;// todo check
+				// todo check type
+				PsiArrayType setterRefType = (PsiArrayType) setterType;
 				if (context.shouldTranslate(psiArrayType.getComponentType(), setterRefType.getComponentType())) {
-					String className = psiArrayType.getComponentType().getCanonicalText() + "Array";
-					// todo array translator
+					String className = psiArrayType.getComponentType().getPresentableText() + "Array";
 					context.scheduleTranslator(getterType, setterType);
 					return "translate" + className + "(" + inputVariable + "." + getter.getName() + "())";
 				} else {
