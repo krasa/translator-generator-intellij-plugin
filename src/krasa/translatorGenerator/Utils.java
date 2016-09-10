@@ -19,6 +19,9 @@ public class Utils {
 	}
 
 	public static PsiMethod getter(PsiField field) {
+		if (field == null) {
+			return null;
+		}
 		List<PsiMethod> setters = PropertyUtil.getGetters(field.getContainingClass(), field.getName());
 		if (setters.size() == 1) {
 			return setters.get(0);

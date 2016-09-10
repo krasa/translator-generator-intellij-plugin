@@ -62,10 +62,10 @@ public class MethodCodeGenerator {
 			if (!PsiUtil.isAbstractClass(to)) {
 				if (fromImpls.length == 1) {
 					// to=1, from=1
-					s = translator(s, fromImpls[0], to, inputVariable);
+					s = translatorBody(s, fromImpls[0], to, inputVariable);
 				} else {
 					// to=1, from=N
-					s = translator(s, fromImpls, to);
+					s = instanceOfTranslator(s, fromImpls, to);
 				}
 			} else {
 				s += "\n //TODO\n";
@@ -95,7 +95,7 @@ public class MethodCodeGenerator {
 			} else {
 				if (canTranslate(fromImpls, toImpls)) {
 					// to=N, from=N
-					s = translator(s, toImpls, fromImpls);
+					s = instanceOfTranslator(s, toImpls, fromImpls);
 				} else {
 					// to=M, from=N hardcore
 					s += "\n //TODO M2N\n";
@@ -119,7 +119,8 @@ public class MethodCodeGenerator {
 		s += to.getQualifiedName() + "[] " + "result = new " + to.getQualifiedName() + "[input.length];";
 		s += "for (int i = 0; i < input.length; i++) {";
 
-		PsiClassType fromTypeParameter = JavaPsiFacade.getInstance(from.getProject()).getElementFactory().createType(from);
+		PsiClassType fromTypeParameter = JavaPsiFacade.getInstance(from.getProject()).getElementFactory()
+				.createType(from);
 		PsiClassType toTypeParameter = JavaPsiFacade.getInstance(to.getProject()).getElementFactory().createType(to);
 		if (context.shouldTranslate(toTypeParameter, fromTypeParameter)) {
 			context.scheduleTranslator(fromTypeParameter, toTypeParameter);
@@ -134,47 +135,37 @@ public class MethodCodeGenerator {
 		return s;
 	}
 
-	private String translator(String s, PsiClass[] toImpls, PsiClass[] fromImpls) {
-		String inputVariable;
+	private String instanceOfTranslator(String s, PsiClass[] toImpls, PsiClass[] fromImpls) {
 		for (PsiClass fromImpl : fromImpls) {
-			PsiClass toImpl = getMatching(toImpls, fromImpl);
-			if (fromImpl != from) {
-				inputVariable = "input" + fromImpl.getName();
-				s += "if(input instanceof " + fromImpl.getQualifiedName() + "){";
-				s += fromImpl.getQualifiedName() + " " + inputVariable + " = (" + fromImpl.getQualifiedName()
-						+ ") input;";
-				s = translator(s, fromImpl, toImpl, inputVariable);
-				s += "}";
-			} else {
-				if (!PsiUtil.isAbstractClass(toImpl)) {
-					inputVariable = "input";
-					s = translator(s, fromImpl, toImpl, inputVariable);
-				} else {
-					s += "throw new java.lang.IllegalArgumentException(\"unable to translate:\"+ input);";
-				}
-			}
+			PsiClass to = getMatching(toImpls, fromImpl);
+			s = instanceOfTranslator(s, fromImpl, to);
 		}
 		return s;
 	}
 
-	private String translator(String s, PsiClass[] fromImpls, PsiClass to) {
-		String inputVariable = "input";
+	private String instanceOfTranslator(String s, PsiClass[] fromImpls, PsiClass to) {
 		for (int i1 = 0; i1 < fromImpls.length; i1++) {
 			PsiClass fromImpl = fromImpls[i1];
-			if (fromImpl != from) {
-				inputVariable = "input" + fromImpl.getName();
-				s += "if(input instanceof " + fromImpl.getQualifiedName() + "){";
-				s += fromImpl.getQualifiedName() + " " + inputVariable + " = (" + fromImpl.getQualifiedName()
-						+ ") input;";
-				s = translator(s, fromImpl, to, inputVariable);
-				s += "}";
+			s = instanceOfTranslator(s, fromImpl, to);
+		}
+		return s;
+	}
+
+	private String instanceOfTranslator(String s, PsiClass fromImpl, PsiClass to) {
+		String inputVariable = "input";
+		if (fromImpl != from) {
+			inputVariable = "input" + fromImpl.getName();
+			s += "if(input instanceof " + fromImpl.getQualifiedName() + "){";
+			s += fromImpl.getQualifiedName() + " " + inputVariable + " = (" + fromImpl.getQualifiedName()
+					+ ") input;";
+			s = translatorBody(s, fromImpl, to, inputVariable);
+			s += "}";
+		} else {
+			if (!PsiUtil.isAbstractClass(to)) {
+				inputVariable = "input";
+				s = translatorBody(s, fromImpl, to, inputVariable);
 			} else {
-				if (!PsiUtil.isAbstractClass(to)) {
-					inputVariable = "input";
-					s = translator(s, fromImpl, to, inputVariable);
-				} else {
-					s += "throw new java.lang.IllegalArgumentException(\"unable to translate:\"+ input);";
-				}
+				s += "throw new java.lang.IllegalArgumentException(\"unable to translate:\"+ input);";
 			}
 		}
 		return s;
@@ -219,16 +210,16 @@ public class MethodCodeGenerator {
 		return psiClasses;
 	}
 
-	private String translator(String s, PsiClass from, PsiClass to, String inputVariable) {
+	private String translatorBody(String s, PsiClass from, PsiClass to, String inputVariable) {
 		PsiField[] toFields = to.getAllFields();
 		PsiField[] fromFields = from.getAllFields();
 		s += to.getQualifiedName() + " " + "result = new " + to.getQualifiedName() + "();";
-		s = generateCall(s, fromFields, toFields, inputVariable);
+		s = translateFields(s, fromFields, toFields, inputVariable);
 		s += "return result;";
 		return s;
 	}
 
-	private String generateCall(String s, PsiField[] fromFields, PsiField[] toFields, String inputVariable) {
+	private String translateFields(String s, PsiField[] fromFields, PsiField[] toFields, String inputVariable) {
 		int lastTodo = -1;
 		Map<String, PsiField> fromFieldsMap = getStringPsiFieldMap(fromFields);
 
@@ -237,35 +228,31 @@ public class MethodCodeGenerator {
 			if (Utils.isStatic(toField)) {
 				continue;
 			}
-			PsiMethod setter = Utils.setter(toField);
+			PsiMethod toSetter = Utils.setter(toField);
 			PsiMethod toGetter = Utils.getter(toField);
+			PsiField fromField = fromFieldsMap.get(toField.getName());
+			PsiMethod fromGetter = Utils.getter(fromField);
 
-			if (setter == null && toGetter != null) {
+			if (toSetter == null && toGetter != null && fromGetter != null) {
 				if (isCollectionClassOrInterface(toGetter.getReturnType())) {
-					s = handleCollection(s, toField, toGetter, inputVariable, fromFieldsMap);
+					s = handleCollection(s, fromField, toField, toGetter, inputVariable, fromGetter);
 				} else {
-					s += " //TODO " + toField.getName() + "\n";
+					s += " //TODO result." + toField.getName() + "\n";
 				}
-			} else if (setter != null) {
-				PsiField fromField = fromFieldsMap.get(toField.getName());
-				if (fromField == null) {
-					s += "\n//result." + setter.getName() + "(" + inputVariable + ".get" + capitalize(toField.getName())
-							+ "());\n";
-				} else {
-					PsiMethod fromGetter = Utils.getter(fromField);
-					if (fromGetter != null) {
-						s += "result." + setter.getName() + "(" + getter(fromGetter, setter, inputVariable) + ");";
-					} else {
-						s += "\n//result." + setter.getName() + "(" + inputVariable + ".get"
-								+ capitalize(toField.getName()) + "());\n";
-					}
-				}
+			} else if (toSetter != null && fromField == null) {
+				s += "\n//result." + toSetter.getName() + "(" + inputVariable + ".get" + capitalize(toField.getName())
+						+ "());\n";
+			} else if (toSetter != null && fromGetter != null) {
+				s += "result." + toSetter.getName() + "(" + getter(fromGetter, toSetter, inputVariable) + ");";
+			} else if (toSetter != null) {   //fromField != null && fromGetter == null
+				s += "\n//result." + toSetter.getName() + "(" + inputVariable + ".get" + capitalize(toField.getName())
+						+ "());\n";
 			} else {
 				if (lastTodo != i - 1) {
 					s += "\n";
 				}
 				lastTodo = i;
-				s += " //TODO " + toField.getName() + "\n";
+				s += " //TODO result." + toField.getName() + "\n";
 			}
 		}
 		return s.replace("\n\n", "\n");
@@ -324,15 +311,13 @@ public class MethodCodeGenerator {
 		return PsiUtilCore.toPsiElementArray(unique);
 	}
 
-	protected String handleCollection(String s, PsiField toField, PsiMethod toGetter, String methodInputVariable,
-			Map<String, PsiField> fromFieldsMap) {
+	protected String handleCollection(String s, PsiField fromField, PsiField toField, PsiMethod toGetter,
+									  String methodInputVariable, PsiMethod fromGetter) {
 		if (toGetter.getReturnType() instanceof PsiClassReferenceType) {
 			PsiClassReferenceType toGetterType = (PsiClassReferenceType) toGetter.getReturnType();
 			String toType = toGetterType.getCanonicalText();
 			PsiType[] toGetterTypeParameters = toGetterType.getReference().getTypeParameters();
 
-			PsiField fromField = fromFieldsMap.get(toField.getNameIdentifier().getText());
-			PsiMethod fromGetter = Utils.getter(fromField);
 			PsiClassReferenceType fromGetterType = (PsiClassReferenceType) fromGetter.getReturnType();
 			String fromType = fromGetterType.getCanonicalText();
 			PsiType[] fromGetterTypeParameters = fromGetterType.getReference().getTypeParameters();
