@@ -32,9 +32,24 @@ public class PsiBuilder {
 		return methodFromText;
 	}
 
+	private PsiMethod createArrayTranslatorMethod(PsiClass builderClass, PsiClass from, PsiClass to) {
+		PsiMethod methodFromText = elementFactory.createMethodFromText(
+				new MethodCodeGenerator(from, to, context).arrayTranslatorMethod(), builderClass);
+		context.markTranslatorMethodProcessed(PsiUtil.getTypeByPsiElement(from), PsiUtil.getTypeByPsiElement(to));
+		return methodFromText;
+	}
+
 	public PsiMethod createTranslatorMethod(PsiClass builderClass, PsiType fromType, PsiType toType) {
-		PsiClassReferenceType from = (PsiClassReferenceType) fromType;
-		PsiClassReferenceType to = (PsiClassReferenceType) toType;
+		if (fromType instanceof PsiArrayType) {       
+			fromType=	fromType.getDeepComponentType() ;
+			toType  =  toType.getDeepComponentType();               
+			PsiClassType from = (PsiClassType) fromType;
+			PsiClassType to = (PsiClassType) toType;
+			return createArrayTranslatorMethod(builderClass, from.resolve(), to.resolve());
+		}            
+		
+		PsiClassType from = (PsiClassType) fromType;
+		PsiClassType to = (PsiClassType) toType;
 		return createTranslatorMethod(builderClass, from.resolve(), to.resolve());
 	}
 }

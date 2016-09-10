@@ -42,7 +42,7 @@ public class Context {
 		}
 		return HACK.shouldTranslate(getter.getCanonicalText());
 	}
-
+		
 	public void scheduleTranslator(PsiType from, PsiType to) {
 		add(new TranslatorDto(from, to));
 	}
