@@ -4,7 +4,6 @@ import static com.siyeh.ig.psiutils.CollectionUtils.isCollectionClassOrInterface
 
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.*;
-import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.util.PsiUtil;
 
 import krasa.translatorGenerator.assembler.TranslatorDto;
@@ -43,8 +42,8 @@ public class PsiBuilder {
 		}
 
 		if (isCollectionClassOrInterface(fromType) && isCollectionClassOrInterface(toType)) {
-			PsiClassType from = (PsiClassReferenceType) fromType;
-			PsiClassType to = (PsiClassReferenceType) toType;
+			PsiClassType from = (PsiClassType) fromType;
+			PsiClassType to = (PsiClassType) toType;
 			return createCollectionTranslatorMethod(builderClass, from, to, jaxbCollection);
 		}
 

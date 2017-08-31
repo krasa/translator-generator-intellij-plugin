@@ -97,9 +97,10 @@ public class Context {
 	}
 
 	@NotNull
-	public PsiClassType refreshType(PsiClassReferenceType fromGetterTypeParameter) {
-		PsiClassReferenceType psiClassReferenceType = fromGetterTypeParameter;
-		PsiClass resolve = psiClassReferenceType.resolve();
-		return JavaPsiFacade.getInstance(getProject()).getElementFactory().createType(resolve);
+	public PsiClassType refreshType(PsiClassReferenceType type) {
+		PsiClass resolve = type.resolve();
+		PsiType[] typeParameters = type.getReference().getTypeParameters();
+
+		return JavaPsiFacade.getInstance(getProject()).getElementFactory().createType(resolve, typeParameters);
 	}
 }

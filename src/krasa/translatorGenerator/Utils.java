@@ -10,10 +10,10 @@ import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.psi.PsiClassType;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiType;
-import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.util.PropertyUtil;
 
 /**
@@ -86,9 +86,7 @@ public class Utils {
 	}
 
 	public static String getPresentableFullType(PsiType type) {
-		PsiClassReferenceType fromGetterType = (PsiClassReferenceType) type;
-		String fromType = fromGetterType.getPresentableText();
-		PsiType[] fromGetterTypeParameters = fromGetterType.getReference().getTypeParameters();
+		PsiClassType fromGetterType = (PsiClassType) type;
 		return fromGetterType.getPresentableText().replaceAll("[<>, ]", "");
 	}
 

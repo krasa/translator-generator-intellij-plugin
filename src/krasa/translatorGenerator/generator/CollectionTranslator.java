@@ -43,35 +43,48 @@ public class CollectionTranslator {
 	@NotNull
 	private String body() {
 		String s = "";
-		PsiClassReferenceType setterType = (PsiClassReferenceType) to;
-		String toType = setterType.getCanonicalText();
-		PsiType[] toGetterTypeParameters = setterType.getReference().getTypeParameters();
+		PsiClassType toType = to;
+		PsiType[] toTypeParameters = PsiType.EMPTY_ARRAY;
 
-		PsiClassReferenceType getterType = (PsiClassReferenceType) from;
-		String fromType = getterType.getCanonicalText();
-		PsiType[] fromGetterTypeParameters = getterType.getReference().getTypeParameters();
+		String toTypeStr;
+		if (to instanceof PsiClassReferenceType) {
+			toTypeParameters = ((PsiClassReferenceType) to).getReference().getTypeParameters();
+			toTypeStr = toType.getCanonicalText();
+		} else {
+			toTypeParameters = to.getParameters();
+			toTypeStr = toType.getCanonicalText();
+		}
+
+		PsiClassType fromType;
+		PsiType[] fromTypeParameters = PsiType.EMPTY_ARRAY;
+		fromType = from;
+		if (from instanceof PsiClassReferenceType) {
+			fromTypeParameters = ((PsiClassReferenceType) from).getReference().getTypeParameters();
+		} else {
+			fromTypeParameters = from.getParameters();
+		}
 
 		String inputVariable = "input";
 		String objectType = "Object";
 		String itemGetter = "item";
-		String constructor = constructor(getterType, fromGetterTypeParameters);
+		String constructor = constructor(fromType, fromTypeParameters);
 		if (jaxbCollection) {
 			s += "if(input==null){return;}";
 
 			s += "if(result==null){result=" + constructor + ";\n}\n";
 		} else {
-			s += toType + " result =" + constructor + ";\n";
+			s += toTypeStr + " result =" + constructor + ";\n";
 		}
 
-		if (toGetterTypeParameters.length == 1 && fromGetterTypeParameters.length == 1) { // List/Set
+		if (toTypeParameters.length == 1 && fromTypeParameters.length == 1) { // List/Set
 
 
-			PsiType toGetterTypeParameter = toGetterTypeParameters[0];
-			PsiType fromGetterTypeParameter = fromGetterTypeParameters[0];
+			PsiType toGetterTypeParameter = toTypeParameters[0];
+			PsiType fromGetterTypeParameter = fromTypeParameters[0];
 
 			objectType = fromGetterTypeParameter.getCanonicalText();
 			boolean shouldTranslate = context.shouldTranslate(toGetterTypeParameter, fromGetterTypeParameter);
-			if (setterType.equals(getterType) && !shouldTranslate) {
+			if (toType.equals(fromType) && !shouldTranslate) {
 				s += "result.addAll(input);";
 				if (jaxbCollection) {
 					return s;
@@ -82,10 +95,10 @@ public class CollectionTranslator {
 				context.scheduleTranslator(fromGetterTypeParameter, toGetterTypeParameter);
 				itemGetter = "translate" + fromGetterTypeParameter.getPresentableText() + "(item)";
 			}
-		} else if (toGetterTypeParameters.length == 2 && fromGetterTypeParameters.length == 2) { // Map
-			boolean shouldTranslate0 = context.shouldTranslate(toGetterTypeParameters[0], fromGetterTypeParameters[0]);
-			boolean shouldTranslate1 = context.shouldTranslate(toGetterTypeParameters[1], fromGetterTypeParameters[1]);
-			if (setterType.equals(getterType) && !shouldTranslate0 && !shouldTranslate1) {
+		} else if (toTypeParameters.length == 2 && fromTypeParameters.length == 2) { // Map
+			boolean shouldTranslate0 = context.shouldTranslate(toTypeParameters[0], fromTypeParameters[0]);
+			boolean shouldTranslate1 = context.shouldTranslate(toTypeParameters[1], fromTypeParameters[1]);
+			if (toType.equals(fromType) && !shouldTranslate0 && !shouldTranslate1) {
 				s += "result.putAll(input);";
 				if (jaxbCollection) {
 					return s;
@@ -95,9 +108,9 @@ public class CollectionTranslator {
 			}
 
 			inputVariable += ".entrySet()";
-			PsiType toGetterTypeParameter = toGetterTypeParameters[0];
-			PsiType fromGetterTypeParameter = fromGetterTypeParameters[0];
-			objectType = "java.util.Map.Entry<" + fromGetterTypeParameters[0].getCanonicalText() + "," + fromGetterTypeParameters[1].getCanonicalText() + ">";
+			PsiType toGetterTypeParameter = toTypeParameters[0];
+			PsiType fromGetterTypeParameter = fromTypeParameters[0];
+			objectType = "java.util.Map.Entry<" + fromTypeParameters[0].getCanonicalText() + "," + fromTypeParameters[1].getCanonicalText() + ">";
 
 			String key = "item.getKey()";
 			String value = "item.getValue()";
@@ -114,7 +127,7 @@ public class CollectionTranslator {
 		}
 
 		s += "for(" + objectType + " item : " + inputVariable + "){";
-		if (toGetterTypeParameters.length == 2) {
+		if (toTypeParameters.length == 2) {
 			s += "result.put(" + itemGetter + ");";
 		} else {
 			s += "result.add(" + itemGetter + ");";
@@ -128,7 +141,7 @@ public class CollectionTranslator {
 	}
 
 	@NotNull
-	private String constructor(PsiClassReferenceType fromGetterType, PsiType[] fromGetterTypeParameters) {
+	private String constructor(PsiClassType fromGetterType, PsiType[] fromGetterTypeParameters) {
 		String impl = null;
 		if (PsiAdapter.isListType(JavaPsiFacade.getElementFactory(context.getProject()), fromGetterType))
 			impl = "java.util.ArrayList";
