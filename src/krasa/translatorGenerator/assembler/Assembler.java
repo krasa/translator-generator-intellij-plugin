@@ -1,9 +1,5 @@
 package krasa.translatorGenerator.assembler;
 
-import krasa.translatorGenerator.Context;
-import krasa.translatorGenerator.PsiBuilder;
-import krasa.translatorGenerator.PsiFacade;
-
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
@@ -11,6 +7,10 @@ import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.util.PsiTreeUtil;
+
+import krasa.translatorGenerator.Context;
+import krasa.translatorGenerator.PsiBuilder;
+import krasa.translatorGenerator.PsiFacade;
 
 /**
  * @author Vojtech Krasa
@@ -69,4 +69,23 @@ public abstract class Assembler {
 		psiFacade.reformat(added);
 	}
 
+	protected void replaceMethod(PsiMethod original, PsiMethod replacement) {
+		try {
+			original.replace(replacement);
+			psiFacade.shortenClassReferences(replacement);
+			psiFacade.reformat(replacement);
+		} catch (Throwable e) {
+			throw new RuntimeException("translatorMethod=" + replacement.getName() + ", text=" + replacement.getText(), e);
+		}
+	}
+
+	protected void replaceClass(PsiClass original, PsiClass replacement) {
+		try {
+			original.replace(replacement);
+			psiFacade.shortenClassReferences(replacement);
+			psiFacade.reformat(replacement);
+		} catch (Throwable e) {
+			throw new RuntimeException("translatorMethod=" + replacement.getName() + ", text=" + replacement.getText(), e);
+		}
+	}
 }

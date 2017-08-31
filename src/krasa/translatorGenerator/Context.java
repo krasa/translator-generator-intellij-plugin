@@ -2,8 +2,6 @@ package krasa.translatorGenerator;
 
 import java.util.Set;
 
-import krasa.translatorGenerator.assembler.TranslatorDto;
-
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
@@ -11,6 +9,8 @@ import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiType;
 import com.intellij.refactoring.typeCook.Util;
 import com.intellij.util.containers.ConcurrentHashSet;
+
+import krasa.translatorGenerator.assembler.TranslatorDto;
 
 /**
  * @author Vojtech Krasa
@@ -33,16 +33,16 @@ public class Context {
 		return project;
 	}
 
-	public boolean shouldTranslate(PsiType getter, PsiType setter) {
-		if (HACK.isTranslationExcluded(getter)) {
+	public boolean shouldTranslate(PsiType getterType, PsiType setterType) {
+		if (GlobalSettings.getInstance().isTranslationExcluded(getterType)) {
 			return false;
 		}
-		if (!getter.getCanonicalText().equals(setter.getCanonicalText())) {
+		if (!getterType.getCanonicalText().equals(setterType.getCanonicalText())) {
 			return true;
 		}
-		return HACK.shouldTranslate(getter.getCanonicalText());
+		return GlobalSettings.getInstance().shouldTranslate(getterType.getCanonicalText());
 	}
-		
+
 	public void scheduleTranslator(PsiType from, PsiType to) {
 		add(new TranslatorDto(from, to));
 	}
@@ -77,5 +77,4 @@ public class Context {
 	public Editor getEditor() {
 		return editor;
 	}
-
 }

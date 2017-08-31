@@ -1,38 +1,39 @@
 package krasa.translatorGenerator.assembler;
 
 import com.intellij.openapi.editor.Document;
-import com.intellij.psi.*;
+import com.intellij.psi.PsiDeclarationStatement;
+import com.intellij.psi.PsiDocumentManager;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiLocalVariable;
 import com.intellij.psi.codeStyle.CodeStyleManager;
 import com.intellij.psi.util.PsiTreeUtil;
 
 import krasa.translatorGenerator.Context;
 import krasa.translatorGenerator.PsiFacade;
-import krasa.translatorGenerator.generator.SetterCallsGenerator;
+import krasa.translatorGenerator.generator.GetterCallsGenerator;
 
 /**
  * @author Vojtech Krasa
  */
-public class SetterCallsAssembler extends Assembler {
+public class GetterCallsAssembler extends Assembler {
 
 	private final PsiLocalVariable localVariable;
 	private final PsiFacade psiFacade;
 	private final Context context;
-	private PsiElementFactory elementFactory;
 
-	public SetterCallsAssembler(PsiLocalVariable variable, PsiFacade psiFacade, Context context) {
+	public GetterCallsAssembler(PsiLocalVariable variable, PsiFacade psiFacade, Context context) {
 		super(psiFacade, context);
 		this.localVariable = variable;
 		this.psiFacade = psiFacade;
 		this.context = context;
-		elementFactory = JavaPsiFacade.getElementFactory(psiFacade.getProject());
 	}
 
-	public void generateSetterCalls() {
-		SetterCallsGenerator generator = new SetterCallsGenerator(localVariable, context);
+	public void generateGetterCalls() {
+		GetterCallsGenerator generator = new GetterCallsGenerator(localVariable, context);
 		PsiDeclarationStatement statement = PsiTreeUtil.getTopmostParentOfType(localVariable, PsiDeclarationStatement.class);
 
 		StringBuilder sb = new StringBuilder();
-		for (String s1 : generator.generateSetterCalls()) {
+		for (String s1 : generator.generateGetterCalls()) {
 			sb.append(s1);
 		}
 

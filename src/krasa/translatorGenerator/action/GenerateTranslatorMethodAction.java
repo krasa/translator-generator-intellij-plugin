@@ -2,16 +2,16 @@ package krasa.translatorGenerator.action;
 
 import static com.intellij.openapi.actionSystem.CommonDataKeys.EDITOR;
 
-import krasa.translatorGenerator.Context;
-import krasa.translatorGenerator.PsiFacade;
-import krasa.translatorGenerator.assembler.TranslatorMethodAssembler;
-
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiMethod;
-import com.intellij.psi.PsiParameter;
 import com.intellij.psi.PsiType;
+
+import krasa.translatorGenerator.Context;
+import krasa.translatorGenerator.PsiFacade;
+import krasa.translatorGenerator.SettingsUI;
+import krasa.translatorGenerator.assembler.TranslatorMethodAssembler;
 
 /**
  * @author Vojtech Krasa
@@ -24,8 +24,8 @@ public class GenerateTranslatorMethodAction extends TranslatorAction {
 		Context context = new Context(e.getProject(), EDITOR.getData(e.getDataContext()));
 
 		if (psiMethod != null) {
-			PsiParameter[] parameters = psiMethod.getParameterList().getParameters();
-			if (parameters.length == 1) {
+			boolean b = SettingsUI.showDialog(getEventProject(e), psiMethod);
+			if (b) {
 				generateTranslatorMethod(psiMethod, psiFacade, context);
 			}
 		}
@@ -48,9 +48,10 @@ public class GenerateTranslatorMethodAction extends TranslatorAction {
 		PsiFacade psiFacade = new PsiFacade(e.getProject());
 		PsiElement psiElement = psiFacade.getPsiElement(e);
 		PsiMethod psiMethod = getPsiMethod(psiElement);
-		e.getPresentation().setEnabledAndVisible(
-				psiMethod != null && psiMethod.getParameterList().getParametersCount() > 0
-						&& !PsiType.VOID.equals(psiMethod.getReturnType()));
+
+		boolean oneToOne = psiMethod != null && psiMethod.getParameterList().getParametersCount() == 1 && !PsiType.VOID.equals(psiMethod.getReturnType());
+		boolean twoParameters = psiMethod != null && psiMethod.getParameterList().getParametersCount() == 2 && PsiType.VOID.equals(psiMethod.getReturnType());
+		e.getPresentation().setEnabledAndVisible(oneToOne || twoParameters);
 	}
 
 	private PsiMethod getPsiMethod(PsiElement psiElement) {
