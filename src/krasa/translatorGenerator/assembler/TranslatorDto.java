@@ -12,6 +12,7 @@ public class TranslatorDto {
 	private final PsiType from;
 	private final PsiType to;
 	public boolean processed;
+	public boolean jaxbCollection;
 
 	public TranslatorDto(PsiType from, PsiType to) {
 		this.from = from;
@@ -57,5 +58,10 @@ public class TranslatorDto {
 	@Override
 	public String toString() {
 		return new ToStringBuilder(this).append("from", from).append("to", to).append("processed", processed).toString();
+	}
+
+	public TranslatorDto jaxbCollection() {
+		jaxbCollection = true;
+		return this;
 	}
 }

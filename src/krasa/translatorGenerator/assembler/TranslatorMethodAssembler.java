@@ -27,11 +27,13 @@ public class TranslatorMethodAssembler extends Assembler {
 		PsiParameter[] parameters = psiMethod.getParameterList().getParameters();
 		PsiType fromType = parameters[0].getType();
 		PsiType toType = psiMethod.getReturnType();
+		boolean jaxbCollection = false;
 		if (TypeConversionUtil.isVoidType(toType) && parameters.length == 2) {
 			toType = parameters[1].getType();
+			jaxbCollection = true;
 		}
 
-		PsiMethod translatorMethod = psiBuilder.createTranslatorMethod(parentClass, fromType, toType);
+		PsiMethod translatorMethod = psiBuilder.createTranslatorMethod(parentClass, fromType, toType, jaxbCollection);
 		replaceMethod(psiMethod, translatorMethod);
 
 		generateScheduledTranslatorMethods(parentClass);

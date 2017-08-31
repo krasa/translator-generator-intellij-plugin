@@ -7,6 +7,7 @@ import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.util.PsiUtil;
 
+import krasa.translatorGenerator.assembler.TranslatorDto;
 import krasa.translatorGenerator.generator.ArrayTranslator;
 import krasa.translatorGenerator.generator.CollectionTranslator;
 import krasa.translatorGenerator.generator.MethodCodeGenerator;
@@ -28,7 +29,11 @@ public class PsiBuilder {
 		return elementFactory.createClassFromText("public static class " + from.getName() + "To" + to.getName() + "Translator {}", null).getInnerClasses()[0];
 	}
 
-	public PsiMethod createTranslatorMethod(PsiClass builderClass, PsiType fromType, PsiType toType) {
+	public PsiMethod createTranslatorMethod(PsiClass builderClass, TranslatorDto translatorDto) {
+		return createTranslatorMethod(builderClass, translatorDto.getFrom(), translatorDto.getTo(), translatorDto.jaxbCollection);
+	}
+
+	public PsiMethod createTranslatorMethod(PsiClass builderClass, PsiType fromType, PsiType toType, boolean jaxbCollection) {
 		if (fromType instanceof PsiArrayType) {
 			fromType = fromType.getDeepComponentType();
 			toType = toType.getDeepComponentType();
@@ -40,7 +45,7 @@ public class PsiBuilder {
 		if (isCollectionClassOrInterface(fromType) && isCollectionClassOrInterface(toType)) {
 			PsiClassType from = (PsiClassReferenceType) fromType;
 			PsiClassType to = (PsiClassReferenceType) toType;
-			return createCollectionTranslatorMethod(builderClass, from, to);
+			return createCollectionTranslatorMethod(builderClass, from, to, jaxbCollection);
 		}
 
 		PsiClassType from = (PsiClassType) fromType;
@@ -48,8 +53,9 @@ public class PsiBuilder {
 		return createTranslatorMethod(builderClass, from.resolve(), to.resolve());
 	}
 
-	private PsiMethod createCollectionTranslatorMethod(PsiClass builderClass, PsiClassType from, PsiClassType to) {
-		PsiMethod methodFromText = elementFactory.createMethodFromText(new CollectionTranslator(from, to, context).translatorMethod(), builderClass);
+	private PsiMethod createCollectionTranslatorMethod(PsiClass builderClass, PsiClassType from, PsiClassType to, boolean jaxbCollection) {
+		PsiMethod methodFromText = elementFactory.createMethodFromText(new CollectionTranslator(from, to, jaxbCollection, context).translatorMethod(),
+				builderClass);
 		context.markTranslatorMethodProcessed(from, to);
 		return methodFromText;
 	}
@@ -65,4 +71,5 @@ public class PsiBuilder {
 		context.markTranslatorMethodProcessed(PsiUtil.getTypeByPsiElement(from), PsiUtil.getTypeByPsiElement(to));
 		return methodFromText;
 	}
+
 }

@@ -14,9 +14,11 @@ import com.intellij.ide.hierarchy.JavaHierarchyUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.psi.*;
+import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.util.PsiTypesUtil;
 import com.intellij.psi.util.TypeConversionUtil;
 import com.intellij.ui.SortedListModel;
+import com.siyeh.ig.psiutils.CollectionUtils;
 
 public class SettingsUI {
 	private JPanel root;
@@ -108,6 +110,12 @@ public class SettingsUI {
 
 	private String getPackage(PsiType fromType) {
 		String packageName = "";
+		if (CollectionUtils.isCollectionClassOrInterface(fromType) && fromType instanceof PsiClassReferenceType) {
+			PsiType[] toGetterTypeParameters = ((PsiClassReferenceType) fromType).getReference().getTypeParameters();
+			if (toGetterTypeParameters.length > 0) {
+				fromType = toGetterTypeParameters[0];
+			}
+		}
 		if (fromType instanceof PsiClassType) {
 			PsiClassType psiClassReferenceType = (PsiClassType) fromType;
 			PsiClass resolve = psiClassReferenceType.resolve();

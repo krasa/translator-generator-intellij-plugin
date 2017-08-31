@@ -2,11 +2,16 @@ package krasa.translatorGenerator;
 
 import java.util.Set;
 
+import org.jetbrains.annotations.NotNull;
+
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
+import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiClassType;
 import com.intellij.psi.PsiType;
+import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.refactoring.typeCook.Util;
 import com.intellij.util.containers.ConcurrentHashSet;
 
@@ -44,7 +49,20 @@ public class Context {
 	}
 
 	public void scheduleTranslator(PsiType from, PsiType to) {
+
+		if (from instanceof PsiClassReferenceType) {
+			from = refreshType((PsiClassReferenceType) from);
+		}
+
+		if (to instanceof PsiClassReferenceType) {
+			to = refreshType((PsiClassReferenceType) to);
+		}
+
 		add(new TranslatorDto(from, to));
+	}
+
+	public void scheduleJaxBCollectionTranslator(PsiType from, PsiType to) {
+		add(new TranslatorDto(from, to).jaxbCollection());
 	}
 
 	private void add(TranslatorDto translatorDto) {
@@ -76,5 +94,12 @@ public class Context {
 
 	public Editor getEditor() {
 		return editor;
+	}
+
+	@NotNull
+	public PsiClassType refreshType(PsiClassReferenceType fromGetterTypeParameter) {
+		PsiClassReferenceType psiClassReferenceType = fromGetterTypeParameter;
+		PsiClass resolve = psiClassReferenceType.resolve();
+		return JavaPsiFacade.getInstance(getProject()).getElementFactory().createType(resolve);
 	}
 }

@@ -22,9 +22,9 @@ public class GlobalSettings implements ApplicationComponent, PersistentStateComp
 		excluded.add("javax.xml.bind");
 	}
 
-	public boolean shouldTranslate(String canonicalText) {
+	public boolean shouldTranslate(String fullyQualifiedType) {
 		for (String s : included) {
-			if (canonicalText.startsWith(s)) {
+			if (fullyQualifiedType.startsWith(s)) {
 				return true;
 			}
 		}

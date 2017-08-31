@@ -1,15 +1,22 @@
 <idea-plugin version="2">
-	<id>krasa.TranslatorGenerator</id>
-	<name>Translator Generator</name>
+	<id>krasa.translatorGenerator</id>
+	<name>POJO Translator Generator</name>
 	<version>0.3</version>
 
-	<vendor url="https://github.com/krasa/TranslatorGenerator" email="vojta.krasa@gmail.com">Vojtech
+	<vendor url="https://github.com/krasa/translator-generator-intellij-plugin" email="vojta.krasa@gmail.com">Vojtech
 		Krasa
 	</vendor>
 
 
 	<description><![CDATA[
-Generate Java translators for POJOs, especially for JAXB generated classes. Generate calls to all setters or to all getters for a selected variable.
+Generates translators for POJOs, especially for JAXB generated classes or for deep cloning. Generates calls to all setters or to all getters for a selected variable. 
+                                                                                                                                                                      
+<br>
+<br>
+Go to <a href="https://github.com/krasa/translator-generator-intellij-plugin">https://github.com/krasa/translator-generator-intellij-plugin</a> for usage instructions.
+<br>
+<br>
+Contains many edge cases, pull requests welcomed.
   ]]></description>
 
 	<change-notes><![CDATA[
