@@ -1,4 +1,4 @@
-# translator-generator-intellij-plugin
+# POJO Translator/Mapper Generator
 Work in progress, contributors welcomed.
 
 https://github.com/krasa/translator-generator-intellij-plugin-test
