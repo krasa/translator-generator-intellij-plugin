@@ -2,6 +2,8 @@
 Work in progress, contributors welcomed.
 
 https://github.com/krasa/translator-generator-intellij-plugin-test
+## Usage:
+Alt + Insert on top of a variable, or inside of a method which takes one parameter and returns one, or takes two and returns none.
 
 ## Features:
 
