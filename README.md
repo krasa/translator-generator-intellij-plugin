@@ -1,4 +1,9 @@
 # POJO Translator/Mapper Generator
+
+- Generates translators for POJOs, especially for JAXB generated classes or for deep cloning.
+- Generates calls to all setters or to all getters for a selected variable. 
+       
+
 Work in progress, contributors welcomed.
 
 https://github.com/krasa/translator-generator-intellij-plugin-test
