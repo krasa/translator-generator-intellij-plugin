@@ -1,6 +1,6 @@
 # POJO Translator/Mapper Generator
 
-- Generates translators for POJOs, especially for JAXB generated classes or for deep cloning.
+- Generates translators or deep cloners for POJOs, especially for JAXB generated classes.
 - Generates calls to all setters or to all getters for a selected variable. 
        
 
